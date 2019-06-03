@@ -10,6 +10,7 @@ import pandas as pd
 from tkinter import *
 from tkinter import ttk
 from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames, asksaveasfilename
+from PIL import Image, ImageTk
 
 # Globals
 filenames = []
@@ -17,23 +18,40 @@ keywords_filename = ""
 sentences = []
 keywords = []
 success_msg = ""
+labels = {}
+labels_file = {}
 
 def get_filename():
         # Tk().withdraw()
         print("Initializing Dialogue... \nPlease select a file.")
         filename = askopenfilename(initialdir=os.getcwd(), title='Sélectionnez un fichier')
-        global keywords_filename
-        keywords_filename = filename
-        return filename 
+        if filename:
+                global keywords_filename
+                keywords_filename = filename
+                return filename 
+        else:
+                pass
+
+def preview_filenames(filenames):
+        filenameslabel_str = ""
+        global filenameslabel
+        for i in range (len(filenames)):
+                filenameslabel_str = filenameslabel_str + "\n" + filenames[i].split("/")[-1]
+        filenameslabel = filenameslabel_str
+        return filenameslabel
 
 def get_filenames():
         # Tk().withdraw()
         print("Initializing Dialogue... \nPlease select a file.")
         tk_filenames = askopenfilenames(initialdir=os.getcwd(), title='Sélectionnez un ou plusieurs fichiers')
-        filenames_list = list(tk_filenames)
-        global filenames
-        filenames = filenames_list
-        return filenames_list 
+        if tk_filenames:
+                filenames_list = list(tk_filenames)
+                global filenames
+                filenames = filenames_list
+                preview_filenames(filenames)
+                return filenames_list 
+        else:
+                pass
 
 
 def get_keywords():
@@ -41,23 +59,28 @@ def get_keywords():
         print(keywords_file)
         ext = os.path.splitext(keywords_file)[1][1:]
         print(ext)
-        if ext == "csv":
-                text_file = open(keywords_file, 'r')
-                all_lines = text_file.readlines()
-                text_file.close()
-                all_keywords = []
-                for value in all_lines:
-                        if value:
-                                clean_value = re.sub('[^a-zA-Z0-9]+', '', value)
-                                all_keywords.append(clean_value)
-                global keywords
-                keywords = all_keywords
-                print ("\nFile read finished!")
-                print (all_keywords)
-                return all_keywords
+        if ext:
+                if ext == "csv":
+                        error_msg.set("")
+                        text_file = open(keywords_file, 'r')
+                        all_lines = text_file.readlines()
+                        text_file.close()
+                        all_keywords = []
+                        for value in all_lines:
+                                if value:
+                                        clean_value = re.sub('[^a-zA-Z0-9]+', '', value)
+                                        all_keywords.append(clean_value)
+                        global keywords
+                        keywords = all_keywords
+                        print ("\nFile read finished!")
+                        print (all_keywords)
+                        return all_keywords
+                else:
+                        print ("Please enter a valid file")
+                        error_msg.set("Veuillez entrer un fichier au format CSV")
+                        return 0
         else:
-                print ("Please enter a valid file")
-                return 0
+                pass
 
 def get_all_sentences():
         filenames_list = get_filenames()
@@ -156,12 +179,12 @@ def word_matches(word, sentence):
 
 
 def keywords_matching(keywords_list, sentences_list, label_error):
-        global filenames, keywords_filename
+        global filenames, keywords_filename, labels, error_msg
         if keywords_filename == "" or len(filenames) == 0:
-                label_error["text"] = "Veuillez choisir au moins deux fichiers"
+                error_msg.set("Veuillez choisir au moins deux fichiers")
                 return label_error.update()
         else:
-                label_error["text"] = ""
+                error_msg.set("")
                 label_error.update()
                 # Adding the matching sentences to a file
                 output_file = open(asksaveasfilename(title='Choisissez où vous voulez enregistrer votre fichier de réponses', defaultextension=".txt"), "w")
@@ -176,6 +199,8 @@ def keywords_matching(keywords_list, sentences_list, label_error):
                 success_msg = 'Fichier de résultats ' + os.path.basename(output_file.name) + ' téléchargé !'
                 output_file.close()
                 print (success_msg)
+                print ("\nLabels -->\n")
+                print (labels)
                 return success_msg
 
 # Set text to a label
@@ -183,87 +208,130 @@ def set_text(label, text):
         label["text"] = text
         return label.update()
 
-# Not working
+# Set multi text to labels
+def set_text_multi(labels, text):
+        print(labels_file)
+        for i in range(len(filenames)): 
+                labels["label_file" + str(i)]["text"] = filenames[i].split("/")[-1]
+                labels["label_file" + str(i)].update
+        return labels
+
 def reset(mw):
-        global sentences, filenames, keywords_filename, keywords, success_msg
+        global sentences, filenames, keywords_filename, keywords, error_msg, success_msg, labels_file, labels
         filenames = []
         keywords_filename = ""
         sentences = []
         keywords = []
         success_msg = ""
-        return sentences, filenames, keywords_filename, keywords, success_msg
+        error_msg.set("")
+        # Reset keyword file imported
+        labels["label_keyword_file"]["text"] = keywords_filename
+        labels["label_error"]["text"] = error_msg
+        labels["label_success"]["text"] = success_msg
 
-def create_labels(mw, text, fg):
-        if isinstance(text, str):
-                new_label = Label(mw, text = text, fg = fg)
-                new_label.pack()
-                return new_label.update()
-        elif isinstance(text, list):
-                # d = {}
-                labels = []
-                for i in range (len(text)):
-                        labels.append(Label(mw, text = text[i].split("/")[-1], fg = fg))
-                        # print(d["new_label{0}".format(item)] + '\n')
-                for label in labels:
-                        print (label["text"])
-                        label.pack()
-                        label.update()
-                # print (d + "\n")
-                return labels
+        # Reset files imported
+        reset_labels(labels_file)
+        return labels_file
+
+
+def reset_labels(labels):
+        for item in labels.values():
+                item.destroy()
+        labels.clear()
+        return labels
+
+
+def create_labels(mw, text_list, fg):
+        global labels_file
+        # Reset files imported
+        reset_labels(labels_file)     
+        if isinstance(text_list, list):
+                for i in range (len(text_list)):
+                        id_label = "label_file" +  str(i)
+                        new_label = Label(mw, text = text_list[i].split("/")[-1], fg = fg)
+                        new_label.pack()
+                        labels_file[id_label] = new_label
+                return labels_file
         else:
                 pass
 
+def create_label_var(mw, id_label, textvar, fg):
+        global labels
+        new_label = Label(mw, textvariable = textvar, fg = fg)
+        new_label.pack()
+        labels[id_label] = new_label
+        return new_label
+
+def create_label_static(mw, id_label, text, fg):
+        global labels
+        new_label = Label(mw, text = text, fg = fg)
+        new_label.pack()
+        labels[id_label] = new_label
+        return new_label
+
+def update_labels(labels):
+        print(labels)
+        for label in labels.values():
+                label.update()
+        return labels
 
 
 
 # GUI
 def main():
-        mw = Tk()
-        mw.title('Welcome to the Kanbios Parser')
-        mw.geometry("800x600")
+        # Init window
+        root = Tk()
+        root.title('Welcome to the Kanbios Parser')
+        root.geometry("850x650")
         ttk.Style().configure("TButton", padding=6, relief="flat", background="#ccc")
+        # Init frame
+        mw = Frame(root)
+        mw.pack(padx=20, pady=20)
+        global labels, error_msg, filenameslabel
+        error_msg = StringVar()
+        filenameslabel = StringVar()
+
+        # Logo Kanbios
+        logo_canvas = Canvas(mw, width=371, height=105)
+        logo=PhotoImage(file="logo-kanbios-resized.png")
+        logo_canvas.create_image(5, 5,image=logo, anchor="nw")
+        logo_canvas.pack(side=TOP)
 
         # Step 1
-        label_title1 = Label(mw, text = '\n1 - Importer vos mots-clés')
-        label_title1.pack()
+        create_label_static(mw, 'label_title1', '\n1 - Importer vos mots-clés', 'black')
         # Get the name of the keywords file
-        keywords_filename_btn = ttk.Button(mw, text = 'Parcourir... (.csv)', command = (lambda : get_keywords() and set_text(label_text1, keywords_filename.split("/")[-1])))
+        keywords_filename_btn = ttk.Button(mw, text = 'Parcourir... (.csv)', command = (lambda : get_keywords() and set_text(labels["label_keyword_file"], keywords_filename.split("/")[-1])))
         keywords_filename_btn.pack()
         # Preview of the file name
-        label_text1 = Label(mw, text = keywords_filename, fg = 'blue')
-        label_text1.pack()
+        create_label_var(mw, 'label_keyword_file', keywords_filename, 'blue')
+        labels["label_keyword_file"]["text"] = keywords_filename
 
         # Step 2
-        label_title2 = Label(mw, text = '\n2 - Importer vos fichiers à analyser')
-        label_title2.pack()
+        create_label_static(mw, 'label_title2', '\n2 - Importer vos fichiers à analyser', 'black')
         # Get the names of the files to analyse
-        # get_filenames_btn = ttk.Button(mw, text = 'Parcourir...', command = lambda : get_all_sentences() and set_text(label_text2, filenames))
-        get_filenames_btn = ttk.Button(mw, text = 'Parcourir...', command = lambda : get_all_sentences() and create_labels(mw, filenames, 'blue'))
+        get_filenames_btn = ttk.Button(mw, text = 'Parcourir...', command = lambda : get_all_sentences() and set_text(labels["label_importfile"], filenameslabel))
         get_filenames_btn.pack()
         # Preview of the file name
-        label_text2 = Label(mw, text = filenames, fg = 'blue')
-        label_text2.pack()
-
+        create_label_var(mw, 'label_importfile', filenameslabel, 'blue')
+        
         # Step 3
-        label_title3 = Label(mw, text = '\n3 - Télécharger votre fichier de correspondance')
-        label_title3.pack()
+        create_label_static(mw, 'label_title3', '\n\n3 - Télécharger votre fichier de correspondance', 'black')
         # Process the matching
-        process_btn = ttk.Button(mw, text = 'Télécharger', command = lambda : keywords_matching(keywords, sentences, label_error) and set_text(label_text3, success_msg))
+        process_btn = ttk.Button(mw, text = 'Télécharger', command = lambda : keywords_matching(keywords, sentences, labels["label_error"]) and set_text(labels["label_success"], success_msg))
         process_btn.pack()
+
         # Success message
-        label_text3 = Label(mw, text = success_msg, fg = 'green')
-        label_text3.pack()
+        create_label_var(mw, 'label_success', success_msg, 'green')
 
         # Error message
-        label_error = Label(mw, text = "", fg = 'red')
-        label_error.pack()
+        create_label_var(mw, 'label_error', error_msg, 'red')
 
         # Reset the data
-        reset_btn = ttk.Button(mw, text = 'Réinitialiser', command = lambda : reset(mw))
-        reset_btn.pack(side=BOTTOM)
+        reset_btn = ttk.Button(mw, text = 'Réinitialiser', command = lambda : reset(mw) and update_labels(labels))
+        reset_btn.pack()
 
         # Close the window
-        close_btn = ttk.Button(mw, text = 'Fermer', command = mw.destroy)
+        close_btn = ttk.Button(mw, text = 'Fermer', command = root.destroy)
         close_btn.pack(side=BOTTOM)
 
         mw.mainloop()
