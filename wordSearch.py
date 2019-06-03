@@ -397,7 +397,7 @@ def main():
 
         # Logo Kanbios
         logo_canvas = Canvas(mw, width=371, height=105)
-        logo=PhotoImage(file="logo-kanbios-resized.png")
+        logo=PhotoImage(file="img/logo-kanbios-resized.png")
         logo_canvas.create_image(5, 5,image=logo, anchor="nw")
         logo_canvas.grid(row=1, column=1)
 
