@@ -395,9 +395,18 @@ def main():
         error_msg = StringVar()
         filenameslabel = StringVar()
 
+        # Get absolute path to resource, works for dev and for PyInstaller 
+        def resource_path(relative_path):
+                try:
+                        # PyInstaller creates a temp folder and stores path in _MEIPASS
+                        base_path = sys._MEIPASS
+                except Exception:
+                        base_path = os.path.abspath(".")
+                return os.path.join(base_path, relative_path)
+
         # Logo Kanbios
         logo_canvas = Canvas(mw, width=371, height=105)
-        logo=PhotoImage(file="img/logo-kanbios-resized.png")
+        logo=PhotoImage(file=resource_path("img/logo-kanbios-resized.png"))
         logo_canvas.create_image(5, 5,image=logo, anchor="nw")
         logo_canvas.grid(row=1, column=1)
 
