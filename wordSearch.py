@@ -1,4 +1,4 @@
-from sys import argv
+# from sys import argv
 import os.path
 from string import punctuation
 from collections import *
@@ -11,9 +11,10 @@ import pandas as pd
 from tkinter import *
 from tkinter import ttk
 from tkinter.filedialog import askdirectory, askopenfilename, askopenfilenames, asksaveasfilename
-from PIL import Image, ImageTk
+# from PIL import Image, ImageTk
 from itertools import chain
-import webbrowser 
+import webbrowser
+import unidecode
 
 ### Globals ###
 #Names of the source files
@@ -149,7 +150,7 @@ def get_all_sentences():
                                         all_sentences.append(sentence)
                         print ("\nFile read finished!")
 
-                # -------- WIP .doc file --------
+                # TODO -------- WIP .doc file --------
                 # # + Allow .doc filetype
                 # elif ext == "doc":
                 #         docx_file = asksaveasfilename(defaultextension=".docx", title="Choisissez où vous voulez enregistrer votre fichier .docx")
@@ -214,10 +215,17 @@ def get_all_sentences():
         return all_sentences
 
 
-# Setting of the regex pattern : spaces and/or punctuation between and after the word
-def word_matches(word, sentence):
+# Setting of the regex pattern : spaces and/or punctuation between and after the word, gender and number, multi words
+def word_matches(expr, sentence):
+        # Covers multi-words case
+        words = expr.split(" ")
         sentence = "." + sentence + "." 
-        pattern = re.compile(r'.*(\s|\W)+' + re.escape(word) + r'(\s|\W)+.*')
+        regex = ""
+        for word in words:
+                # Word + gender & number variations. Not covering all the cases, but quite efficient.
+                regex += word + r'e*s*\s*'
+        # Construction of the whole pattern to compare with the sentence
+        pattern = re.compile(r'.*(\s|\W)+' + regex + r'(\s|\W)+.*')
         return re.match(pattern, sentence)
 
 
@@ -243,8 +251,9 @@ def keywords_matching(keywords_list, sentences_list, label_error):
                         paragraphs["p" + idx] = document.add_paragraph('')
                         # Case insensitive matching
                         lower_word = word.lower()
+                        lower_word_without_accents = without_accents(lower_word)
                         for sentence in sentences_list: 
-                                if word_matches(lower_word, sentence.lower()):
+                                if word_matches(lower_word, sentence.lower()) or word_matches(lower_word_without_accents, sentence.lower()) :
                                         paragraphs["p" + idx].add_run( "\t--> %s.\n\n" % sentence)
                                         cpt +=1
                         paragraphs["key" + idx].add_run(str(cpt) + " occurrences").italic = True
@@ -257,7 +266,7 @@ def keywords_matching(keywords_list, sentences_list, label_error):
                 print (success_msg)
                 return output_file
 
-# -------- WIP .doc optimization --------
+# TODO -------- WIP .doc optimization --------
 # # Convert .doc file to .docx
 # def convert_to_docx(filename):
 #         doc_file = filename
@@ -366,6 +375,11 @@ def display_results():
                 return buttons["open_result_btn"].grid(row=12, column=1, pady=(0, 15))
         else:
                 return buttons["open_result_btn"].grid_forget()
+
+# Return the word without accents
+def without_accents(word):
+        unaccented_word = unidecode.unidecode(word)
+        return unaccented_word
 
 
 # Graphical User Interface
