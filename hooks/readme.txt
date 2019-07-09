@@ -1,0 +1,1 @@
+To make hidden imports in Pyinstaller work, add these two files to the folder Pyinstaller/hooks
