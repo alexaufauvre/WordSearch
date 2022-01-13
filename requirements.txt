@@ -6,7 +6,7 @@ gunicorn==19.9.0
 matplotlib==3.0.3
 packaging==19.0
 pandas==0.24.2
-Pillow==6.0.0
+Pillow==9.0.0
 pycparser==2.19
 PyInstaller==3.4
 pylint==2.3.1
